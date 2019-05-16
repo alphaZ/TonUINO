@@ -169,6 +169,9 @@ MFRC522::StatusCode status;
 #define buttonPause A0
 #define buttonUp A1
 #define buttonDown A2
+#define buttonVolUp A3
+#define buttonVolDown A4
+
 #define busyPin 4
 
 #define LONG_PRESS 1000
@@ -176,6 +179,8 @@ MFRC522::StatusCode status;
 Button pauseButton(buttonPause);
 Button upButton(buttonUp);
 Button downButton(buttonDown);
+Button volUpButton(buttonVolUp);
+Button volDownButton(buttonVolDown);
 bool ignorePauseButton = false;
 bool ignoreUpButton = false;
 bool ignoreDownButton = false;
@@ -197,6 +202,8 @@ void setup() {
   pinMode(buttonPause, INPUT_PULLUP);
   pinMode(buttonUp, INPUT_PULLUP);
   pinMode(buttonDown, INPUT_PULLUP);
+  pinMode(buttonVolUp, INPUT_PULLUP);
+  pinMode(buttonVolDown, INPUT_PULLUP);
 
   // Busy Pin
   pinMode(busyPin, INPUT);
@@ -217,7 +224,8 @@ void setup() {
   // RESET --- ALLE DREI KNÖPFE BEIM STARTEN GEDRÜCKT HALTEN -> alle bekannten
   // Karten werden gelöscht
   if (digitalRead(buttonPause) == LOW && digitalRead(buttonUp) == LOW &&
-      digitalRead(buttonDown) == LOW) {
+      digitalRead(buttonDown) == LOW && digitalRead(buttonVolUp) == LOW &&
+      digitalRead(buttonVolDown) == LOW){
     Serial.println(F("Reset -> EEPROM wird gelöscht"));
     for (int i = 0; i < EEPROM.length(); i++) {
       EEPROM.write(i, 0);
@@ -234,6 +242,8 @@ void loop() {
     pauseButton.read();
     upButton.read();
     downButton.read();
+    volUpButton.read();
+    volDownButton.read();
 
     if (pauseButton.wasReleased()) {
       if (ignorePauseButton == false) {
@@ -259,24 +269,48 @@ void loop() {
     }
 
     if (upButton.pressedFor(LONG_PRESS)) {
-      Serial.println(F("Volume Up"));
-      mp3.increaseVolume();
-      ignoreUpButton = true;
+//      Serial.println(F("Volume Up"));
+//      mp3.increaseVolume();
+//      ignoreUpButton = true;
     } else if (upButton.wasReleased()) {
-      if (!ignoreUpButton)
+//      if (!ignoreUpButton)
         nextTrack(random(65536));
-      else
-        ignoreUpButton = false;
+//      else
+//        ignoreUpButton = false;
     }
 
     if (downButton.pressedFor(LONG_PRESS)) {
+//      Serial.println(F("Volume Down"));
+//      mp3.decreaseVolume();
+//      ignoreDownButton = true;
+    } else if (downButton.wasReleased()) {
+//      if (!ignoreDownButton)
+        previousTrack();
+//      else
+//        ignoreDownButton = false;
+    }
+
+    if (volUpButton.pressedFor(LONG_PRESS)) {
+      Serial.println(F("Volume Up"));
+      mp3.increaseVolume();
+      ignoreUpButton = true;
+    } else if (volUpButton.wasReleased()) {
+      if (!ignoreUpButton) {
+        Serial.println(F("Volume Up by 1"));
+        mp3.increaseVolume();
+      } else
+        ignoreUpButton = false;
+    }
+
+    if (volDownButton.pressedFor(LONG_PRESS)) {
       Serial.println(F("Volume Down"));
       mp3.decreaseVolume();
       ignoreDownButton = true;
-    } else if (downButton.wasReleased()) {
-      if (!ignoreDownButton)
-        previousTrack();
-      else
+    } else if (volDownButton.wasReleased()) {
+      if (!ignoreDownButton) {
+        Serial.println(F("Volume Down by 1"));
+        mp3.decreaseVolume();
+      } else
         ignoreDownButton = false;
     }
     // Ende der Buttons
@@ -430,8 +464,11 @@ void resetCard() {
     pauseButton.read();
     upButton.read();
     downButton.read();
+    volUpButton.read();
+    volDownButton.read();
 
-    if (upButton.wasReleased() || downButton.wasReleased()) {
+    if (upButton.wasReleased() || downButton.wasReleased() ||
+        volUpButton.wasReleased() || volDownButton.wasReleased()) {
       Serial.print(F("Abgebrochen!"));
       mp3.playMp3FolderTrack(802);
       return;
